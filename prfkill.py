@@ -15,11 +15,14 @@ types = dict()
 types[1] = "WLAN"
 types[2] = "Bluetooth"
 
-appname = "prfkill"
-appicon = "/usr/share/icons/ubuntu-mono-light/status/24/nm-device-wireless.svg"
+appname            = "Purfkill"
+bt_icon_enabled    = "/usr/share/icons/ubuntu-mono-light/status/24/bluetooth-active.svg"
+bt_icon_disabled   = "/usr/share/icons/ubuntu-mono-light/status/24/bluetooth-disabled.svg"
+wlan_icon_enabled  = "/usr/share/icons/ubuntu-mono-light/status/24/nm-device-wireless.svg"
+wlan_icon_disabled = "/usr/share/icons/ubuntu-mono-light/status/24/nm-no-connection.svg"
 
 class Display:
-    def __init__(self, labels, wmname=appname):
+    def __init__(self, props, wmname=appname):
         self.window = gtk.Window(gtk.WINDOW_POPUP)
         self.window.set_title(wmname)
         self.window.set_border_width(1)
@@ -29,38 +32,68 @@ class Display:
         self.window.connect("destroy", lambda x: self.window.destroy())
         timer = gobject.timeout_add(2000, lambda: self.window.destroy())
 
-        table = gtk.Table(2, 2, True)
+        table = gtk.Table(2, 1, True)
 
-        icon = gtk.Image()
-        icon.set_from_file(appicon)
-        icon.show()
+        wlan_widgetbox = gtk.HBox()
+        bt_widgetbox   = gtk.HBox()
 
-        table.attach(icon, 0, 1, 0, 2)
+        bt_icon  = gtk.Image()
+        bt_label = gtk.Label()
+        # init bt default settings since it will not be enumerable when disabled, unlike wlan
+        bt_icon.set_from_file(bt_icon_disabled)
+        bt_label_str = "Bluetooth: disabled"
 
-        # widgetbox.pack_start(icon)
-        i = 0
-        for str in labels:
-            label = gtk.Label(str)
-            # table.attach(icon, 0
-            table.attach(label, 1, 2, i, 1+i)
-            i += 1
+        wlan_icon  = gtk.Image()
+        wlan_label = gtk.Label()
+        for prop in props:
+            if prop['type'] == 1:
+                if prop['hard']:
+                    wlan_icon.set_from_file(wlan_icon_disabled)
+                    wlan_label_str = "WLAN: disabled"
+                else:
+                    wlan_icon.set_from_file(wlan_icon_enabled)
+                    wlan_label_str = "WLAN: enabled"
 
-        # self.window.add(widgetbox)
+            elif prop['type'] == 2:
+                if prop['hard']:
+                    bt_icon.set_from_file(bt_icon_disabled)
+                    bt_label_str = "Bluetooth: disabled"
+                else:
+                    bt_icon.set_from_file(bt_icon_enabled)
+                    bt_label_str = "Bluetooth: enabled"
+
+
+        # set labels
+        wlan_label.set_text(wlan_label_str)
+        bt_label.set_text(bt_label_str)
+
+        # show widgets
+        bt_icon.show()
+        bt_label.show()
+        wlan_icon.show()
+        wlan_label.show()
+
+        wlan_widgetbox.pack_start(wlan_icon)
+        wlan_widgetbox.pack_start(wlan_label)
+        wlan_widgetbox.show()
+        table.attach(wlan_widgetbox, 0, 1, 0, 1)
+
+        bt_widgetbox.pack_start(bt_icon)
+        bt_widgetbox.pack_start(bt_label)
+        bt_widgetbox.show()
+        table.attach(bt_widgetbox, 0, 1, 1, 2)
+
         table.show()
         self.window.add(table)
         self.window.show_all()
 
 class RfkillAdapter:
-    def get_device(self, device_name):
+    def get_device_props(self, device_name):
         device = bus.get_object("org.freedesktop.URfkill", device_name)
         props = device.GetAll('org.freedesktop.URfkill.Device',
                     dbus_interface="org.freedesktop.DBus.Properties")
-        if props['hard']:
-            label =  types[props['type']], ": hard locked"
-        else:
-            label =  types[props['type']], ": unlocked"
 
-        return "".join(label)
+        return props
 
     def device_removed_callback(self, device):
         print 'Device %s was removed' % (device)
@@ -68,10 +101,10 @@ class RfkillAdapter:
 
     def show_status(self, device):
         devices = self.iface.get_dbus_method('EnumerateDevices')()
-        labels = []
+        props = []
         for device in devices:
-            labels.append(self.get_device(device))
-        Display(labels)
+            props.append(self.get_device_props(device))
+        Display(props)
 
 
     def __init__(self):
