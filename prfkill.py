@@ -32,8 +32,6 @@ class Display:
         self.window.connect("destroy", lambda x: self.window.destroy())
         timer = gobject.timeout_add(2000, lambda: self.window.destroy())
 
-        table = gtk.Table(2, 1, True)
-
         wlan_widgetbox = gtk.HBox()
         bt_widgetbox   = gtk.HBox()
 
@@ -41,7 +39,7 @@ class Display:
         bt_label = gtk.Label()
         # init bt default settings since it will not be enumerable when disabled, unlike wlan
         bt_icon.set_from_file(bt_icon_disabled)
-        bt_label_str = "Bluetooth: disabled"
+        bt_label_str = "disabled"
 
         wlan_icon  = gtk.Image()
         wlan_label = gtk.Label()
@@ -49,18 +47,18 @@ class Display:
             if prop['type'] == 1:
                 if prop['hard']:
                     wlan_icon.set_from_file(wlan_icon_disabled)
-                    wlan_label_str = "WLAN: disabled"
+                    wlan_label_str = "disabled"
                 else:
                     wlan_icon.set_from_file(wlan_icon_enabled)
-                    wlan_label_str = "WLAN: enabled"
+                    wlan_label_str = "enabled"
 
             elif prop['type'] == 2:
                 if prop['hard']:
                     bt_icon.set_from_file(bt_icon_disabled)
-                    bt_label_str = "Bluetooth: disabled"
+                    bt_label_str = "disabled"
                 else:
                     bt_icon.set_from_file(bt_icon_enabled)
-                    bt_label_str = "Bluetooth: enabled"
+                    bt_label_str = "enabled"
 
 
         # set labels
@@ -75,16 +73,11 @@ class Display:
 
         wlan_widgetbox.pack_start(wlan_icon)
         wlan_widgetbox.pack_start(wlan_label)
+        wlan_widgetbox.pack_start(bt_icon)
+        wlan_widgetbox.pack_start(bt_label)
         wlan_widgetbox.show()
-        table.attach(wlan_widgetbox, 0, 1, 0, 1)
 
-        bt_widgetbox.pack_start(bt_icon)
-        bt_widgetbox.pack_start(bt_label)
-        bt_widgetbox.show()
-        table.attach(bt_widgetbox, 0, 1, 1, 2)
-
-        table.show()
-        self.window.add(table)
+        self.window.add(wlan_widgetbox)
         self.window.show_all()
 
 class RfkillAdapter:
